@@ -5,10 +5,10 @@ import {
   DownOutlined,
   SettingOutlined,
 } from "@ant-design/icons";
-
 import tokenList from "../tokenList.json"
 import axios from "axios";
 import { useSendTransaction, useWaitForTransaction } from "wagmi";
+
 
 function Swap(props) {
   const { address, isConnected } = props;
@@ -16,8 +16,8 @@ function Swap(props) {
   const [slippage, setSlippage] = useState(2.5);
   const [tokenOneAmount, setTokenOneAmount] = useState(null);
   const [tokenTwoAmount, setTokenTwoAmount] = useState(null);
-  const [tokenOne, setTokenOne] = useState(tokenList[5]);
-  const [tokenTwo, setTokenTwo] = useState(tokenList[11]);
+  const [tokenOne, setTokenOne] = useState(tokenList[0]);
+  const [tokenTwo, setTokenTwo] = useState(tokenList[1]);
   const [isOpen, setIsOpen] = useState(false);
   const [changeToken, setChangeToken] = useState(1);
   const [prices, setPrices] = useState(null);
@@ -27,7 +27,7 @@ function Swap(props) {
     value: null,
   });
 
-  const { data, sendTransaction } = useSendTransaction({
+  const {data, sendTransaction} = useSendTransaction({
     request: {
       from: address,
       to: String(txDetails.to),
@@ -39,8 +39,6 @@ function Swap(props) {
   const { isLoading, isSuccess } = useWaitForTransaction({
     hash: data?.hash,
   })
-
-
 
   function handleSlippageChange(e) {
     setSlippage(e.target.value);
@@ -66,14 +64,12 @@ function Swap(props) {
     fetchPrices(two.address, one.address);
   }
 
-
   function openModal(asset) {
     setChangeToken(asset);
     setIsOpen(true);
   }
 
-
-  function modifyToken(i) {
+  function modifyToken(i){
     setPrices(null);
     setTokenOneAmount(null);
     setTokenTwoAmount(null);
@@ -87,11 +83,10 @@ function Swap(props) {
     setIsOpen(false);
   }
 
-
   async function fetchPrices(one, two) {
 
-    const res = await axios.get(`http://localhost:3001/tokenPrice`, {
-      params: { addressOne: one, addressTwo: two }
+    const res = await axios.get(`https://swap-back.netlify.app:3001/tokenPrice`, {
+      params: {addressOne: one, addressTwo: two}
     })
 
 
@@ -100,11 +95,11 @@ function Swap(props) {
 
   async function fetchDexSwap() {
 
-    const allowance = await axios.get(`https://api.1inch.io/v5.0/1/approve/allowance?tokenAddress=${tokenOne.address}&walletAddress=${address}`)
+    const allowance = await axios.get(`https://api.1inch.io/v5.2/1/approve/allowance?tokenAddress=${tokenOne.address}&walletAddress=${address}`)
 
     if (allowance.data.allowance === "0") {
 
-      const approve = await axios.get(`https://api.1inch.io/v5.0/1/approve/transaction?tokenAddress=${tokenOne.address}`)
+      const approve = await axios.get(`https://api.1inch.io/v5.2/1/approve/transaction?tokenAddress=${tokenOne.address}`)
 
       setTxDetails(approve.data);
       console.log("not approved")
@@ -113,17 +108,15 @@ function Swap(props) {
     }
 
     const tx = await axios.get(
-      `https://api.1inch.io/v5.0/1/swap?fromTokenAddress=${tokenOne.address}&toTokenAddress=${tokenTwo.address}&amount=${tokenOneAmount.padEnd(tokenOne.decimals + tokenOneAmount.length, '0')}&fromAddress=${address}&slippage=${slippage}`
+      `https://api.1inch.io/v5.2/1/swap?src=${tokenOne.address}&dst=${tokenTwo.address}&amount=${tokenOneAmount.padEnd(tokenOne.decimals + tokenOneAmount.length, '0')}&from=${address}&slippage=${slippage}`
     )
 
     let decimals = Number(`1E${tokenTwo.decimals}`)
-    setTokenTwoAmount((Number(tx.data.toTokenAmount) / decimals).toFixed(2));
+    setTokenTwoAmount((Number(tx.data.toAmount) / decimals).toFixed(2));
 
     setTxDetails(tx.data.tx);
 
   }
-
-
 
 
   useEffect(() => {
@@ -137,6 +130,8 @@ function Swap(props) {
     if (txDetails.to && isConnected) {
       sendTransaction();
     }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [txDetails])
 
   useEffect(() => {
@@ -150,7 +145,8 @@ function Swap(props) {
         duration: 0,
       })
     }
-
+    
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading])
 
   useEffect(() => {
@@ -169,22 +165,18 @@ function Swap(props) {
       })
     }
 
-
+// eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuccess])
-
-
 
 
   const settings = (
     <>
-
       <div>Slippage Tolerance</div>
       <div>
         <Radio.Group value={slippage} onChange={handleSlippageChange}>
           <Radio.Button value={0.5}>0.5%</Radio.Button>
           <Radio.Button value={2.5}>2.5%</Radio.Button>
-          <Radio.Button value={5}>5%</Radio.Button>
-
+          <Radio.Button value={5}>5.0%</Radio.Button>
         </Radio.Group>
       </div>
     </>
